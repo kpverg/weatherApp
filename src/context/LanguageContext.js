@@ -15,6 +15,26 @@ const translations = {
     missingApiKeyMsg: 'Please enter a valid API key.',
     english: 'English',
     greek: 'Greek',
+    // Days of week
+    monday: 'Monday',
+    tuesday: 'Tuesday',
+    wednesday: 'Wednesday',
+    thursday: 'Thursday',
+    friday: 'Friday',
+    saturday: 'Saturday',
+    sunday: 'Sunday',
+    // Weather descriptions
+    'clear sky': 'Clear Sky',
+    'few clouds': 'Few Clouds',
+    'scattered clouds': 'Scattered Clouds',
+    'broken clouds': 'Broken Clouds',
+    'shower rain': 'Shower Rain',
+    rain: 'Rain',
+    thunderstorm: 'Thunderstorm',
+    snow: 'Snow',
+    mist: 'Mist',
+    humidity: 'Humidity',
+    feelsLike: 'Feels Like',
   },
   gr: {
     searchPlaceholder: 'Αναζήτηση πόλης...',
@@ -27,6 +47,26 @@ const translations = {
     missingApiKeyMsg: 'Παρακαλώ εισάγετε ένα έγκυρο API key.',
     english: 'Αγγλικά',
     greek: 'Ελληνικά',
+    // Days of week
+    monday: 'Δευτέρα',
+    tuesday: 'Τρίτη',
+    wednesday: 'Τετάρτη',
+    thursday: 'Πέμπτη',
+    friday: 'Παρασκευή',
+    saturday: 'Σάββατο',
+    sunday: 'Κυριακή',
+    // Weather descriptions
+    'clear sky': 'Καθαρός Ουρανός',
+    'few clouds': 'Λίγα Σύννεφα',
+    'scattered clouds': 'Διάσπαρτα Σύννεφα',
+    'broken clouds': 'Σπασμένα Σύννεφα',
+    'shower rain': 'Βροχή',
+    rain: 'Βροχή',
+    thunderstorm: 'Καταιγίδα',
+    snow: 'Χιόνι',
+    mist: 'Ομίχλη',
+    humidity: 'Υγρασία',
+    feelsLike: 'Αίσθηση Θερμοκρασίας',
   },
 };
 
@@ -46,7 +86,7 @@ export function LanguageProvider({ children }) {
     await saveLanguage(lang);
   };
 
-  const t = key => translations[language][key] || translations['en'][key];
+  const t = key => translations[language][key] || translations.en[key];
 
   return (
     <LanguageContext.Provider value={{ language, setLanguage, t }}>
