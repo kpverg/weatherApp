@@ -16,3 +16,12 @@ export async function saveLanguage(lang) {
 export async function loadLanguage() {
   return AsyncStorage.getItem('language');
 }
+
+export async function saveLastCity(city) {
+  return AsyncStorage.setItem('lastCity', JSON.stringify(city));
+}
+
+export async function loadLastCity() {
+  const city = await AsyncStorage.getItem('lastCity');
+  return city ? JSON.parse(city) : null;
+}

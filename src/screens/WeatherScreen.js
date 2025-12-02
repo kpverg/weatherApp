@@ -15,7 +15,11 @@ import { useNavigation } from '@react-navigation/native';
 
 import { searchCities, searchCitiesGR } from '../services/cityService';
 import { fetchWeather } from '../services/apiService';
-import { loadApiKey } from '../services/storageService';
+import {
+  loadApiKey,
+  saveLastCity,
+  loadLastCity,
+} from '../services/storageService';
 import { useLanguage } from '../context/LanguageContext';
 import {
   colors,
@@ -50,10 +54,11 @@ export default function WeatherScreen() {
     const grouped = {};
     list.forEach(item => {
       const day = getDay(item.dt_txt);
-      if (!grouped[day]) {
-        grouped[day] = [];
+      const translatedDay = t(day.toLowerCase());
+      if (!grouped[translatedDay]) {
+        grouped[translatedDay] = [];
       }
-      grouped[day].push(item);
+      grouped[translatedDay].push(item);
     });
     return Object.entries(grouped).map(([day, items]) => ({
       day,
@@ -69,17 +74,21 @@ export default function WeatherScreen() {
       const k = await loadApiKey();
       if (k) setApiKey(k);
 
-      // Load default city (Athens)
-      const defaultCity = {
-        en: 'Athens',
-        gr: 'Αθήνα',
-        lat: 37.9838,
-        lon: 23.7275,
-      };
-      const data = await fetchWeather(defaultCity.lat, defaultCity.lon, k);
+      // Try to load last selected city, fallback to Athens
+      let cityToLoad = await loadLastCity();
+      if (!cityToLoad) {
+        cityToLoad = {
+          en: 'Athens',
+          gr: 'Αθήνα',
+          lat: 37.9838,
+          lon: 23.7275,
+        };
+      }
+
+      const data = await fetchWeather(cityToLoad.lat, cityToLoad.lon, k);
       setWeather(data);
       // Show the city name in the current language
-      const displayName = language === 'gr' ? defaultCity.gr : defaultCity.en;
+      const displayName = language === 'gr' ? cityToLoad.gr : cityToLoad.en;
       setSearchText(displayName);
       // Update theme based on temperature and weather
       const weatherDesc = data.list[0]?.weather[0]?.main || '';
@@ -106,6 +115,8 @@ export default function WeatherScreen() {
 
     const data = await fetchWeather(city.lat, city.lon, apiKey);
     setWeather(data);
+    // Save the selected city for next app launch
+    await saveLastCity(city);
     // Update theme based on temperature and weather
     const weatherDesc = data.list[0]?.weather[0]?.main || '';
     const temp = data.list[0]?.main?.temp || 15;
@@ -165,7 +176,7 @@ export default function WeatherScreen() {
               </Text>
 
               <Text style={styles.status}>
-                {weather.list[0].weather[0].description}
+                {t(weather.list[0].weather[0].description.toLowerCase())}
               </Text>
             </View>
 
@@ -211,7 +222,8 @@ export default function WeatherScreen() {
             })}
           </ScrollView>
         </>
-      )}{' '}
+      )}
+
       {/* SETTINGS BUTTON */}
       <TouchableOpacity
         style={[styles.settingsButton, { backgroundColor: theme.primary }]}

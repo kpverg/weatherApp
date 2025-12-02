@@ -23,6 +23,7 @@ const getHour = dateString => {
 
 export default function DayDetailsScreen({ route }) {
   const navigation = useNavigation();
+  const { language, t } = useLanguage();
   const { day, items, cityName } = route.params;
 
   return (
@@ -50,7 +51,9 @@ export default function DayDetailsScreen({ route }) {
             <View key={i} style={styles.timeCard}>
               <View style={styles.timeHeader}>
                 <Text style={styles.time}>{hour}</Text>
-                <Text style={styles.description}>{description}</Text>
+                <Text style={styles.description}>
+                  {t(description.toLowerCase())}
+                </Text>
               </View>
 
               <View style={styles.tempRow}>
@@ -62,10 +65,12 @@ export default function DayDetailsScreen({ route }) {
                 />
                 <View style={styles.tempDetails}>
                   <Text style={styles.tempMain}>{temp}°</Text>
-                  <Text style={styles.feelsLike}>Feels like: {feelsLike}°</Text>
+                  <Text style={styles.feelsLike}>
+                    {t('feelsLike')}: {feelsLike}°
+                  </Text>
                 </View>
                 <View style={styles.humidity}>
-                  <Text style={styles.humidityLabel}>Humidity</Text>
+                  <Text style={styles.humidityLabel}>{t('humidity')}</Text>
                   <Text style={styles.humidityValue}>{humidity}%</Text>
                 </View>
               </View>
