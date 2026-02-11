@@ -35,6 +35,8 @@ const translations = {
     mist: 'Mist',
     humidity: 'Humidity',
     feelsLike: 'Feels Like',
+    selectLocation: 'Select Location',
+    confirm: 'Confirm',
   },
   gr: {
     searchPlaceholder: 'Αναζήτηση πόλης...',
@@ -67,6 +69,8 @@ const translations = {
     mist: 'Ομίχλη',
     humidity: 'Υγρασία',
     feelsLike: 'Αίσθηση Θερμοκρασίας',
+    selectLocation: 'Επιλογή Τοποθεσίας',
+    confirm: 'Επιβεβαίωση',
   },
 };
 

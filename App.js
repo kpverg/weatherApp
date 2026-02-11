@@ -6,6 +6,7 @@ import SplashScreen from './src/screens/SplashScreen';
 import WeatherScreen from './src/screens/WeatherScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import DayDetailsScreen from './src/screens/DayDetailsScreen';
+import MapScreen from './src/screens/MapScreen';
 import { LanguageProvider } from './src/context/LanguageContext';
 
 const Stack = createNativeStackNavigator();
@@ -19,6 +20,7 @@ export default function App() {
           <Stack.Screen name="Weather" component={WeatherScreen} />
           <Stack.Screen name="Settings" component={SettingsScreen} />
           <Stack.Screen name="DayDetails" component={DayDetailsScreen} />
+          <Stack.Screen name="Map" component={MapScreen} />
         </Stack.Navigator>
       </NavigationContainer>
     </LanguageProvider>
