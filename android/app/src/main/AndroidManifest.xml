@@ -14,7 +14,7 @@
 
       <meta-data
         android:name="com.google.android.geo.API_KEY"
-        android:value="REPLACEME"/>
+        android:value="AIzaSyD8vlQf5rixr5Apk1gjJgXviqFHr3tnhF8"/>
 
       <activity
         android:name=".MainActivity"

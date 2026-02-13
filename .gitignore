@@ -66,6 +66,9 @@ yarn-error.log
 # testing
 /coverage
 
+# Android Secrets
+android/app/src/main/AndroidManifest.xml
+
 # Yarn
 .yarn/*
 !.yarn/patches

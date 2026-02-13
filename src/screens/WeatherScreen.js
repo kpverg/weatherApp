@@ -1,5 +1,5 @@
 // src/screens/WeatherScreen.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -8,13 +8,14 @@ import {
   Image,
   TouchableOpacity,
   ScrollView,
+  Keyboard,
 } from 'react-native';
 
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 
 import { searchCities, searchCitiesGR } from '../services/cityService';
-import { fetchWeather } from '../services/apiService';
+import { fetchWeather, searchCitiesOnline } from '../services/apiService';
 import {
   loadApiKey,
   saveLastCity,
@@ -77,12 +78,38 @@ export default function WeatherScreen() {
     background: colors.grayLight,
   });
 
+  // Reload API Key when screen is focused
+  useFocusEffect(
+    useCallback(() => {
+      loadApiKey().then(k => {
+        if (k) {
+          setApiKey(k);
+          if (error === 'missingApiKey') {
+            setError(null);
+          }
+        }
+      });
+    }, [error])
+  );
+
   // Handle city selection from Map
   useEffect(() => {
     if (route.params?.selectedCity) {
-      handleSelectCity(route.params.selectedCity);
-      // Clear params to avoid re-triggering
-      navigation.setParams({ selectedCity: undefined });
+      console.log('Received city from Map:', route.params.selectedCity);
+      // Directly call handleSelectCity logic
+      const processCityFromMap = async () => {
+        setLoading(true);
+        try {
+          await handleSelectCity(route.params.selectedCity);
+        } catch (e) {
+          console.error('Error processing map city:', e);
+        } finally {
+          setLoading(false);
+          // Clear params to avoid re-triggering
+          navigation.setParams({ selectedCity: undefined });
+        }
+      };
+      processCityFromMap();
     }
   }, [route.params?.selectedCity]);
 
@@ -151,28 +178,67 @@ export default function WeatherScreen() {
     load();
   }, [language]);
 
-  const handleSearchChange = (text) => {
+  const handleSearchChange = async (text) => {
     setSearchText(text);
-    // searchCities now handles both English and Greek internally
-    const results = searchCities(text);
-    setSuggestions(results);
+    
+    // 1. Get local results
+    const localResults = searchCities(text);
+    setSuggestions(localResults);
+
+    // 2. If short query, don't search online
+    if (text.length < 3) return;
+
+    // 3. Search online for more specific municipalities (like Koroni)
+    if (apiKey) {
+      const onlineResults = await searchCitiesOnline(text, apiKey);
+      
+      // Merge results, avoiding duplicates
+      setSuggestions(prev => {
+        const merged = [...prev];
+        onlineResults.forEach(online => {
+          const exists = merged.find(m => 
+            Math.abs(m.lat - online.lat) < 0.01 && 
+            Math.abs(m.lon - online.lon) < 0.01
+          );
+          if (!exists) merged.push(online);
+        });
+        return merged.slice(0, 10);
+      });
+    }
   };
 
   async function handleSelectCity(city) {
-    // Show the city name in the current language
-    const displayName = language === 'gr' ? city.gr : city.en;
-    setSearchText(displayName);
+    // Clear search box and close keyboard
+    setSearchText('');
     setSuggestions([]);
+    Keyboard.dismiss();
 
-    const data = await fetchWeather(city.lat, city.lon, apiKey);
-    setWeather({ ...data, selectedCity: city });
-    // Save the selected city for next app launch
-    await saveLastCity(city);
-    // Update theme based on temperature and weather
-    const weatherDesc = data.list[0]?.weather[0]?.main || '';
-    const temp = data.list[0]?.main?.temp || 15;
-    const newTheme = getWeatherTheme(temp, weatherDesc);
-    setTheme(newTheme);
+    try {
+      setLoading(true);
+      setError(null);
+      // Ensure we have an API Key (might have just been added in Settings)
+      const currentKey = apiKey || await loadApiKey();
+      if (!currentKey) {
+        setError('missingApiKey');
+        return;
+      }
+
+      const data = await fetchWeather(city.lat, city.lon, currentKey);
+      setWeather({ ...data, selectedCity: city });
+      // Save the selected city for next app launch
+      await saveLastCity(city);
+      // Update theme based on temperature and weather
+      const weatherDesc = data.list[0]?.weather[0]?.main || '';
+      const temp = data.list[0]?.main?.temp || 15;
+      const newTheme = getWeatherTheme(temp, weatherDesc);
+      setTheme(newTheme);
+      setError(null);
+    } catch (err) {
+      console.error('Error in handleSelectCity:', err);
+      setError('fetchError');
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -212,6 +278,7 @@ export default function WeatherScreen() {
             >
               <Text style={styles.suggestionText}>
                 {language === 'gr' ? city.gr : city.en}
+                {city.state ? ` (${city.state})` : ''}
               </Text>
             </TouchableOpacity>
           ))}
@@ -241,8 +308,8 @@ export default function WeatherScreen() {
       {!loading && !error && weather?.city && (
         <>
           <View style={styles.header}>
-            <View>
-              <Text style={styles.city}>
+            <View style={styles.mainInfo}>
+              <Text style={styles.city} numberOfLines={1} ellipsizeMode="tail">
                 {language === 'gr'
                   ? weather.selectedCity?.gr || weather.city.name
                   : weather.selectedCity?.en || weather.city.name}
@@ -257,11 +324,13 @@ export default function WeatherScreen() {
               </Text>
             </View>
 
-            <FontAwesome
-              name={getWeatherIcon(weather.list[0].weather[0].icon)}
-              size={58}
-              color={theme.primary}
-            />
+            <View style={styles.iconContainer}>
+              <FontAwesome
+                name={getWeatherIcon(weather.list[0].weather[0].icon)}
+                size={70}
+                color={theme.primary}
+              />
+            </View>
           </View>
           <View style={styles.divider} />
           {/* FORECAST LIST - Show all available days */}
@@ -356,11 +425,15 @@ const styles = StyleSheet.create({
 
   // AUTOCOMPLETE
   suggestionsBox: {
+    position: 'absolute',
+    top: 100, // Roughly below search bar
+    left: 24,
+    right: 24,
     backgroundColor: colors.white,
     borderRadius: borderRadius.lg,
     paddingVertical: spacing.sm,
-    marginBottom: spacing.lg,
-    ...shadows.medium,
+    zIndex: 1000,
+    ...shadows.heavy,
   },
 
   suggestionItem: {
@@ -379,6 +452,18 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: spacing.lg,
+    minHeight: 140,
+  },
+
+  mainInfo: {
+    flex: 1,
+    marginRight: spacing.md,
+  },
+
+  iconContainer: {
+    width: 80,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
   city: {
